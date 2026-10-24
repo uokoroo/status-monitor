@@ -1,0 +1,33 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "status-monitor",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-01",
+  "observability": { "enabled": true },
+
+  // No cron: Grafana Cloud scrapes /metrics every minute and owns history and alerting.
+  // Every scrape computes metrics live from the two Workers' own databases.
+
+  "vars": {
+    "TIMEZONE": "Europe/Dublin",
+    // Local-time deadlines (HH:MM). The brief task fires 06:11; the episode needs its 10-minute cron after that.
+    "BRIEF_DEADLINE": "07:30",
+    "EPISODE_DEADLINE": "08:30"
+  },
+
+  // Probes go through service bindings: a Worker can't fetch another workers.dev Worker on the same
+  // account over the public URL. Grafana's scrape of this Worker covers public reachability.
+  "services": [
+    { "binding": "GARMIN", "service": "garmin-app" },
+    { "binding": "NEWS", "service": "news-feed" }
+  ],
+
+  // Read-only by convention: this Worker only ever runs SELECTs against them.
+  "d1_databases": [
+    { "binding": "GARMIN_DB", "database_name": "garmin-health", "database_id": "775f23be-4437-4a39-bb1a-df8d38ce5444" },
+    { "binding": "NEWS_DB", "database_name": "news_feed", "database_id": "e8fc4719-6db0-45e2-b042-cdb950ff64f2" }
+  ]
+
+  // Secret (wrangler secret put / dashboard): METRICS_TOKEN — password Grafana uses to scrape /metrics
+  // and the status page's ?token=. Anything at least 32 random characters.
+}

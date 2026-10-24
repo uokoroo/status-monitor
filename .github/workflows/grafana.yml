@@ -1,0 +1,32 @@
+name: Apply Grafana config
+
+# Alerts and dashboard live in grafana/*.mjs; this applies them whenever they change.
+# Needs repo secrets GRAFANA_URL, GRAFANA_TOKEN, ALERT_EMAIL (Settings → Secrets → Actions).
+
+on:
+  push:
+    branches: [main]
+    paths: ["grafana/**", "scripts/provision-grafana.mjs"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: grafana
+  cancel-in-progress: false
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node scripts/provision-grafana.mjs
+        env:
+          GRAFANA_URL: ${{ secrets.GRAFANA_URL }}
+          GRAFANA_TOKEN: ${{ secrets.GRAFANA_TOKEN }}
+          ALERT_EMAIL: ${{ secrets.ALERT_EMAIL }}
