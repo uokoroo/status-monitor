@@ -134,6 +134,25 @@ async function dash(dsUid) {
   console.log(`Dashboard: ${new URL(data.url, GRAFANA_URL)}`);
 }
 
+// Fail early, in plain words, on the two common setup mistakes: wrong stack URL, wrong token.
+async function preflight() {
+  let res;
+  try {
+    res = await fetch(new URL("/api/folders?limit=1", GRAFANA_URL), { headers: { authorization: `Bearer ${GRAFANA_TOKEN}` } });
+  } catch (e) {
+    throw new Error(`Can't reach GRAFANA_URL (${GRAFANA_URL}): ${e.message}`);
+  }
+  if (res.status === 530) {
+    throw new Error(`No Grafana stack at ${new URL(GRAFANA_URL).origin}. Copy the URL from your browser's address bar while in Grafana (grafana.com → My Account → Launch) and update the GRAFANA_URL secret.`);
+  }
+  if (res.status === 401 || res.status === 403) {
+    throw new Error("Grafana rejected GRAFANA_TOKEN. Create a service account token with the Editor role and update the secret.");
+  }
+  if (!res.ok) throw new Error(`Grafana returned HTTP ${res.status} for ${GRAFANA_URL}.`);
+  console.log(`Grafana: ${new URL(GRAFANA_URL).origin}`);
+}
+
+await preflight();
 const dsUid = await prometheusUid();
 await folder();
 await contactPoint();
