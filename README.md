@@ -55,7 +55,7 @@ emails you. Critical alerts re-send every 4 h; warnings send once a day. Resolve
    - Basic auth: username `prometheus`, password `METRICS_TOKEN`
    - Scrape interval 1 minute
 4. **Service account.** In Grafana, go to Administration → Service accounts → add one with the
-   **Editor** role and create a token.
+   **Admin** role (alerting provisioning needs it; Editor gets 403s) and create a token.
 5. **GitHub secrets.** In this repo, go to Settings → Secrets → Actions and add `GRAFANA_URL`
    (e.g. `https://you.grafana.net`), `GRAFANA_TOKEN` and `ALERT_EMAIL`. Then run **Actions →
    Apply Grafana config**. It creates the folder, email contact point, notification route, rules and

@@ -6,7 +6,8 @@
 //   GRAFANA_URL=https://<stack>.grafana.net GRAFANA_TOKEN=glsa_... ALERT_EMAIL=you@example.com \
 //     node scripts/provision-grafana.mjs
 //
-// GRAFANA_TOKEN: a service account token with the Editor role (Administration → Service accounts).
+// GRAFANA_TOKEN: a service account token with the Admin role (Administration → Service accounts).
+// Admin, not Editor: Grafana's alerting provisioning API (contact points, routes, rules) requires it.
 // PROM_DS_UID (optional): Prometheus data source UID, if auto-detection picks the wrong one.
 
 import { rules } from "../grafana/alerts.mjs";
@@ -34,6 +35,9 @@ async function api(method, path, body, { allow = [] } = {}) {
     body: body === undefined ? undefined : JSON.stringify(body),
   });
   const text = await res.text();
+  if (res.status === 403) {
+    throw new Error(`${method} ${path} → 403. The service account needs the Admin role (alerting provisioning requires it): Administration → Service accounts → change role to Admin. ${text.slice(0, 200)}`);
+  }
   if (!res.ok && !allow.includes(res.status)) throw new Error(`${method} ${path} → ${res.status}: ${text.slice(0, 500)}`);
   return { status: res.status, data: text ? JSON.parse(text) : null };
 }
@@ -49,8 +53,9 @@ async function prometheusUid() {
 }
 
 async function folder() {
-  const got = await api("GET", `/api/folders/${FOLDER.uid}`, undefined, { allow: [404] });
-  if (got.status === 404) await api("POST", "/api/folders", FOLDER);
+  // List rather than GET by uid: Grafana answers 403, not 404, for a folder uid that doesn't exist yet.
+  const { data } = await api("GET", "/api/folders?limit=1000");
+  if (!data.some((f) => f.uid === FOLDER.uid)) await api("POST", "/api/folders", FOLDER);
   console.log(`Folder: ${FOLDER.title}`);
 }
 
