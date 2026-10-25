@@ -141,7 +141,8 @@ export async function collect(env: Env) {
 
   await Promise.all([
     run("probe_garmin", () => probe(r, "garmin-app", env.GARMIN, "/login", (res) => res.status === 200)),
-    run("probe_news", () => probe(r, "news-feed", env.NEWS, "/", (res) => res.status === 200)),
+    // news-feed answers 404 on / without its session cookie, so probe the open /health page instead.
+    run("probe_news", () => probe(r, "news-feed", env.NEWS, "/health", (res) => res.status === 200)),
     run("garmin_sync", () => garmin(r, env)),
     run("news_pipeline", () => news(r, env)),
   ]);
